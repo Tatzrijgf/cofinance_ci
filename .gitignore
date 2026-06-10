@@ -1,0 +1,45 @@
+# === Environnement virtuel ===
+venv/
+env/
+.env
+.venv
+
+# === Fichiers Python compilés ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# === Base de données SQLite (développement) ===
+db.sqlite3
+
+# === Médias uploadés (justificatifs, etc.) ===
+media/
+
+# === Fichiers statiques collectés (en production) ===
+staticfiles/
+
+# === Fichiers de configuration sensibles ===
+*.env
+*.local
+
+# === IDE et éditeurs ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === Systèmes d'exploitation ===
+.DS_Store
+Thumbs.db
+
+# === Dépendances (si vous utilisez Poetry) ===
+poetry.lock
+Pipfile.lock
+
+# === Fichiers de logs ===
+*.log
+
+# === Répertoire de travail de Celery (si utilisé) ===
+celerybeat-schedule
