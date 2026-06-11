@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Librairies tierces
     'rest_framework',
+    'rest_framework_simplejwt',
     'drf_spectacular',
     # Notre application
     'core',
