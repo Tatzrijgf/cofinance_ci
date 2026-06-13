@@ -9,7 +9,6 @@ class IsAgentOrAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        # Ajout de 'or request.user.is_superuser' pour gérer les comptes créés en terminal
         return request.user.role in ['AGENT', 'ADMIN'] or request.user.is_superuser
 
 
@@ -22,3 +21,14 @@ class IsOwnerOrStaff(permissions.BasePermission):
         if request.user.role in ['AGENT', 'ADMIN'] or request.user.is_superuser:
             return True
         return obj.client == request.user
+
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """
+    Permet à n'importe quel utilisateur connecté de lire les données (GET, SAFE_METHODS),
+    mais restreint la création ou la modification uniquement aux Administrateurs.
+    """
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return request.user and request.user.is_authenticated
+        return request.user and (request.user.is_superuser or request.user.role == 'ADMIN')

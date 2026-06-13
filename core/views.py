@@ -1,3 +1,4 @@
+# core/views.py
 from rest_framework import status, generics, permissions, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -5,24 +6,41 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import action
 from rest_framework import serializers
 
+# Importation pour documenter Swagger explicitement (OAS 3.0)
+from drf_spectacular.utils import extend_schema
+
+from django.db import models
 from decimal import Decimal
 from datetime import date, timedelta
 
-from .models import CustomUser, Credit, PieceJustificative, Echeancier, Paiement, ProduitAssurance, SouscriptionAssurance
-from .serializers import (
-    UserRegistrationSerializer, 
-    UserProfileSerializer, 
-    CreditSerializer, 
-    PieceJustificativeSerializer,
-    EcheancierSerializer,
-    PaiementSerializer,
-    ProduitAssuranceSerializer,
-    SouscriptionAssuranceSerializer
+from .models import (
+    CustomUser, Credit, PieceJustificative, Echeancier, 
+    Paiement, ProduitAssurance, SouscriptionAssurance, Notification, Conversation
 )
-from .permissions import IsOwnerOrStaff, IsAgentOrAdmin
+from .serializers import (
+    UserRegistrationSerializer, UserProfileSerializer, CreditSerializer, 
+    PieceJustificativeSerializer, EcheancierSerializer, PaiementSerializer,
+    ProduitAssuranceSerializer, SouscriptionAssuranceSerializer, NotificationSerializer
+)
+from .permissions import IsOwnerOrStaff, IsAgentOrAdmin, IsAdminOrReadOnly
 
 # ==========================================
-# AUTOMATIONS CRÉDITS
+# UTILITAIRE : SYSTÈME D'ALERTES / NOTIFICATIONS AUTOMATIQUES
+# ==========================================
+
+def declencher_notification(user, titre, message, type_notif):
+    """
+    Crée automatiquement une notification pour l'utilisateur en base de données.
+    """
+    Notification.objects.create(
+        destinataire=user,
+        titre=titre,
+        message=message,
+        type_notification=type_notif
+    )
+
+# ==========================================
+# AUTOMATIONS ÉCHÉANCIERS
 # ==========================================
 
 def generer_echeancier_credit(credit):
@@ -51,20 +69,6 @@ def generer_echeancier_credit(credit):
             montant_du=montant_du,
             statut='A_PAYER'
         )
-
-# ==========================================
-# PERMISSIONS SUPPLÉMENTAIRES ASSURANCES
-# ==========================================
-
-class IsAdminOrReadOnly(permissions.BasePermission):
-    """
-    Permet à n'importe quel utilisateur connecté de lire les données (GET),
-    mais restreint les modifications (POST, PUT, DELETE) uniquement aux Administrateurs.
-    """
-    def has_permission(self, request, view):
-        if request.method in permissions.SAFE_METHODS:
-            return request.user and request.user.is_authenticated
-        return request.user and (request.user.is_superuser or request.user.role == 'ADMIN')
 
 # ==========================================
 # VIEWS & VIEWSETS
@@ -103,7 +107,13 @@ class CreditViewSet(viewsets.ModelViewSet):
         return Credit.objects.filter(client=user)
 
     def perform_create(self, serializer):
-        serializer.save(client=self.request.user)
+        credit = serializer.save(client=self.request.user)
+        declencher_notification(
+            self.request.user, 
+            "Demande de crédit soumise", 
+            f"Votre demande de microcrédit de {credit.montant} FCFA a été enregistrée avec succès.", 
+            "CHANGEMENT_STATUT_CREDIT"
+        )
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated, IsAgentOrAdmin])
     def changer_statut(self, request, pk=None):
@@ -119,6 +129,13 @@ class CreditViewSet(viewsets.ModelViewSet):
             
         credit.statut = nouveau_statut
         credit.save()
+
+        declencher_notification(
+            credit.client, 
+            "Mise à jour de votre demande de crédit", 
+            f"Le statut de votre demande de crédit {credit.id} a changé. Nouveau statut : {nouveau_statut}.", 
+            "CHANGEMENT_STATUT_CREDIT"
+        )
 
         if nouveau_statut == 'APPROUVEE':
             generer_echeancier_credit(credit)
@@ -172,40 +189,48 @@ class PaiementViewSet(viewsets.ModelViewSet):
         return Paiement.objects.filter(echeancier__credit__client=user)
 
     def perform_create(self, serializer):
+        # 1. Sauvegarde du paiement
         paiement = serializer.save(enregistre_par=self.request.user)
         echeance = paiement.echeancier
         
+        # 2. Clôture automatique de l'échéance si montant couvert
         if echeance.total_paye_capital >= echeance.montant_du:
             echeance.statut = 'PAYE'
             echeance.save()
 
+        # Calcul du solde restant dû
+        solde_restant = echeance.montant_du - echeance.total_paye_capital
+        if solde_restant < 0:
+            solde_restant = Decimal('0.00')
+
+        solde_msg = (
+            "Cette échéance est désormais entièrement soldée !" 
+            if echeance.statut == 'PAYE' 
+            else f"Solde restant dû sur cette échéance : {solde_restant} FCFA."
+        )
+
+        # AUTOMATION NOTIFICATION ENRICHIE
+        declencher_notification(
+            echeance.credit.client, 
+            "Remboursement enregistré", 
+            f"Un paiement de {paiement.capital_paye} FCFA a été comptabilisé sur votre échéance du {echeance.date_echeance}. {solde_msg}", 
+            "RAPPEL_ECHEANCE_REMBOUSEMENT"
+        )
+
+        # 3. Clôture automatique du crédit
         credit = echeance.credit
         if not credit.echeances.exclude(statut='PAYE').exists():
             credit.statut = 'CLOTUREE'
             credit.save()
 
 
-# ==========================================
-# VUES ASSURANCE MOBILE (NOUVEAU)
-# ==========================================
-
 class ProduitAssuranceViewSet(viewsets.ModelViewSet):
-    """
-    Gère le catalogue des produits d'assurance de COFINANCE CI.
-    - Lecture : Tous les utilisateurs authentifiés (IsAdminOrReadOnly).
-    - Écriture (Création/Modification) : Réservé uniquement aux administrateurs.
-    """
     queryset = ProduitAssurance.objects.all()
     serializer_class = ProduitAssuranceSerializer
     permission_classes = [IsAdminOrReadOnly]
 
 
 class SouscriptionAssuranceViewSet(viewsets.ModelViewSet):
-    """
-    Gère les souscriptions d'assurance par les clients.
-    - Un client ne voit que ses propres souscriptions d'assurance.
-    - Un agent ou admin a un accès total.
-    """
     queryset = SouscriptionAssurance.objects.all()
     serializer_class = SouscriptionAssuranceSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -217,7 +242,126 @@ class SouscriptionAssuranceViewSet(viewsets.ModelViewSet):
         return SouscriptionAssurance.objects.filter(client=user)
 
     def perform_create(self, serializer):
-        """
-        Assigne automatiquement l'utilisateur connecté comme souscripteur.
-        """
-        serializer.save(client=self.request.user)
+        souscription = serializer.save(client=self.request.user)
+        declencher_notification(
+            self.request.user, 
+            "Assurance validée", 
+            f"Félicitations, votre souscription au produit '{souscription.produit.nom}' a bien été confirmée. Votre couverture se terminera le {souscription.date_fin}.", 
+            "EXPIRATION_ASSURANCE"
+        )
+
+
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(destinataire=self.request.user).order_by('-cree_le')
+
+    @action(detail=True, methods=['post'])
+    def marquer_lu(self, request, pk=None):
+        notification = self.get_object()
+        notification.lu = True
+        notification.save()
+        return Response(NotificationSerializer(notification).data, status=status.HTTP_200_OK)
+
+
+# ==========================================
+# SÉRIALISATEUR POUR LA DOCUMENTATION DES FILTRES DU DASHBOARD
+# ==========================================
+
+class DashboardFilterSerializer(serializers.Serializer):
+    """
+    Déclare la structure des paramètres de filtrage pour que Swagger 
+    les affiche correctement dans son interface de test.
+    """
+    date_debut = serializers.DateField(required=False, help_text="Format AAAA-MM-JJ")
+    date_fin = serializers.DateField(required=False, help_text="Format AAAA-MM-JJ")
+    agent_id = serializers.IntegerField(required=False, help_text="ID de l'agent de terrain")
+    region = serializers.CharField(required=False, help_text="Ex: ABIDJAN, BOUAKE, KORHOGO...")
+
+
+# ==========================================
+# MODULE 05 : TABLEAU DE BORD ADMINISTRATEUR (CORRIGÉ & DOCUMENTÉ)
+# ==========================================
+
+class AdminDashboardView(APIView):
+    """
+    Tableau de bord financier et opérationnel en temps réel.
+    - Évite l'overlap comptable des agents.
+    - Applique l'analyse temporelle à l'ensemble du workflow.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAgentOrAdmin]
+
+    # Le décorateur extend_schema indique à drf-spectacular d'ajouter 
+    # des champs de saisie pour chaque attribut de DashboardFilterSerializer
+    @extend_schema(parameters=[DashboardFilterSerializer])
+    def get(self, request):
+        date_debut = request.query_params.get('date_debut')
+        date_fin = request.query_params.get('date_fin')
+        agent_id = request.query_params.get('agent_id')
+        region = request.query_params.get('region')
+
+        # Querysets d'agrégation de base
+        credits_qs = Credit.objects.all()
+        echeances_qs = Echeancier.objects.all()
+        assurances_qs = SouscriptionAssurance.objects.all()
+        conversations_qs = Conversation.objects.all()
+        paiements_qs = Paiement.objects.all()
+
+        # 1. Filtre temporel complet
+        if date_debut and date_fin:
+            credits_qs = credits_qs.filter(date_demande__range=[date_debut, date_fin])
+            assurances_qs = assurances_qs.filter(date_debut__range=[date_debut, date_fin])
+            echeances_qs = echeances_qs.filter(date_echeance__range=[date_debut, date_fin])
+            paiements_qs = paiements_qs.filter(date_paiement__range=[date_debut, date_fin])
+
+        # 2. Filtre Agent (Isolation comptable)
+        if agent_id:
+            paiements_qs = paiements_qs.filter(enregistre_par_id=agent_id)
+            echeances_qs = echeances_qs.filter(id__in=paiements_qs.values('echeancier_id')).distinct()
+
+        # 3. Filtre par Région
+        if region:
+            credits_qs = credits_qs.filter(client__region=region)
+            assurances_qs = assurances_qs.filter(client__region=region)
+            echeances_qs = echeances_qs.filter(credit__client__region=region)
+            paiements_qs = paiements_qs.filter(echeancier__credit__client__region=region)
+
+        # Calculs agrégés
+        credits_par_statut = credits_qs.values('statut').annotate(count=models.Count('id'))
+
+        total_du = echeances_qs.aggregate(total=models.Sum('montant_du'))['total'] or Decimal('0.00')
+        total_rembourse = paiements_qs.aggregate(total=models.Sum('capital_paye'))['total'] or Decimal('0.00')
+        
+        taux_recouvrement = Decimal('0.00')
+        if total_du > 0:
+            taux_recouvrement = (total_rembourse / total_du) * Decimal('100.00')
+            taux_recouvrement = taux_recouvrement.quantize(Decimal('0.01'))
+
+        assurances_actives = assurances_qs.filter(statut='ACTIVE').count()
+        chats_ouverts = conversations_qs.filter(statut='OUVERTE').count()
+
+        data = {
+            "filtres_appliques": {
+                "date_debut": date_debut,
+                "date_fin": date_fin,
+                "agent_id": agent_id,
+                "region": region
+            },
+            "statistiques_credits": {
+                "volume_credits_par_statut": list(credits_par_statut),
+                "total_capital_planifie": total_du,
+                "total_capital_recouvre": total_rembourse,
+                "taux_recouvrement_pourcentage": taux_recouvrement,
+            },
+            "statistiques_assurances": {
+                "souscriptions_actives": assurances_actives,
+            },
+            "statistiques_support": {
+                "conversations_support_ouvertes": chats_ouverts
+            }
+        }
+
+        return Response(data, status=status.HTTP_200_OK)

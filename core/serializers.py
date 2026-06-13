@@ -1,7 +1,7 @@
 from decimal import Decimal
-from datetime import date, timedelta # Importations nécessaires pour les calculs de dates
+from datetime import date, timedelta
 from rest_framework import serializers
-from .models import CustomUser, Credit, PieceJustificative, Echeancier, Paiement, ProduitAssurance, SouscriptionAssurance
+from .models import CustomUser, Credit, PieceJustificative, Echeancier, Paiement, ProduitAssurance, SouscriptionAssurance, Notification
 
 # ==========================================
 # 1. UTILISATEURS
@@ -112,23 +112,16 @@ class EcheancierSerializer(serializers.ModelSerializer):
 
 
 # ==========================================
-# 4. SÉRIALISATEURS D'ASSURANCE MOBILE (NOUVEAU)
+# 4. ASSURANCES MOBILE
 # ==========================================
 
 class ProduitAssuranceSerializer(serializers.ModelSerializer):
-    """
-    Sérialisateur pour visualiser ou modifier le catalogue des offres d'assurance.
-    """
     class Meta:
         model = ProduitAssurance
         fields = ['id', 'nom', 'description', 'tarif_mensuel']
 
 
 class SouscriptionAssuranceSerializer(serializers.ModelSerializer):
-    """
-    Sérialisateur pour gérer la souscription active d'un client à une assurance.
-    La date de fin et le statut d'origine sont automatisés à la création.
-    """
     produit_detail = ProduitAssuranceSerializer(source='produit', read_only=True)
     client_name = serializers.CharField(source='client.username', read_only=True)
 
@@ -141,12 +134,19 @@ class SouscriptionAssuranceSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'client', 'date_fin', 'statut']
 
     def create(self, validated_data):
-        """
-        Calcule automatiquement une validité par défaut de 1 an (365 jours) 
-        à partir de la date de début fournie (ou aujourd'hui par défaut).
-        """
         date_debut = validated_data.get('date_debut', date.today())
         validated_data['date_debut'] = date_debut
         validated_data['date_fin'] = date_debut + timedelta(days=365)
         validated_data['statut'] = 'ACTIVE'
         return super().create(validated_data)
+
+
+# ==========================================
+# 5. NOTIFICATIONS
+# ==========================================
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'destinataire', 'titre', 'message', 'type_notification', 'lu', 'cree_le']
+        read_only_fields = ['id', 'destinataire', 'titre', 'message', 'type_notification', 'cree_le']
