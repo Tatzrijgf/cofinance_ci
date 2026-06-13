@@ -7,11 +7,6 @@ from django.contrib.auth.models import AbstractUser
 # ==========================================
 
 class CustomUser(AbstractUser):
-    """
-    Modèle utilisateur personnalisé.
-    On utilise AbstractUser pour conserver les fonctionnalités natives de Django 
-    (gestion des mots de passe, groupes, permissions) tout en ajoutant nos champs spécifiques.
-    """
     ROLE_CHOICES = [
         ('CLIENT', 'Client'),
         ('AGENT', 'Agent de terrain'),
@@ -39,9 +34,6 @@ class CustomUser(AbstractUser):
 # ==========================================
 
 class Credit(models.Model):
-    """
-    Représente une demande de microcrédit et ses paramètres financiers.
-    """
     STATUS_CHOICES = [
         ('SOUMISE', 'Soumise'),
         ('EN_ANALYSE', 'En analyse'),
@@ -66,9 +58,6 @@ class Credit(models.Model):
 
 
 class PieceJustificative(models.Model):
-    """
-    Permet d'associer plusieurs documents justificatifs à un seul crédit.
-    """
     credit = models.ForeignKey(Credit, on_delete=models.CASCADE, related_name='pieces_jointes')
     fichier = models.FileField(upload_to='justificatifs/')
     nom_piece = models.CharField(max_length=100, help_text="Ex: Pièce d'identité, Justificatif de domicile")
@@ -83,10 +72,6 @@ class PieceJustificative(models.Model):
 # ==========================================
 
 class Echeancier(models.Model):
-    """
-    Plan de remboursement du crédit, divisé en plusieurs échéances.
-    On supprime 'montant_paye' pour éviter la redondance : on calculera la somme réelle via les Paiements.
-    """
     STATUS_ECHEANCE_CHOICES = [
         ('A_PAYER', 'À payer'),
         ('PAYE', 'Payé'),
@@ -101,7 +86,7 @@ class Echeancier(models.Model):
     @property
     def total_paye_capital(self):
         """
-        Calcule uniquement la somme du capital remboursé pour cette échéance.
+        Somme uniquement le capital effectivement remboursé pour cette échéance.
         """
         agg = self.paiements.aggregate(total=models.Sum('capital_paye'))
         return agg['total'] or Decimal('0.00')
@@ -111,9 +96,6 @@ class Echeancier(models.Model):
 
 
 class Paiement(models.Model):
-    """
-    Enregistrement d'une transaction financière réelle sur une échéance donnée.
-    """
     MODE_PAIEMENT_CHOICES = [
         ('ORANGE_MONEY', 'Orange Money'),
         ('WAVE', 'Wave'),
@@ -140,12 +122,12 @@ class Paiement(models.Model):
     @property
     def montant_total(self):
         """
-        Donne le montant total de la transaction financière (Capital + Pénalités).
+        Calcule de manière dynamique la somme de la transaction (Capital + Pénalités).
         """
         return self.capital_paye + self.penalites_payees
 
     def __str__(self):
-        return f"Paiement {self.id} de {self.montant_total} FCFA (Capital: {self.capital_paye} | Pénalités: {self.penalites_payees}) via {self.mode_paiement}"
+        return f"Paiement {self.id} de {self.montant_total} FCFA"
 
 
 # ==========================================
@@ -153,9 +135,6 @@ class Paiement(models.Model):
 # ==========================================
 
 class ProduitAssurance(models.Model):
-    """
-    Catalogue des types d'assurances disponibles.
-    """
     nom = models.CharField(max_length=100)
     description = models.TextField()
     tarif_mensuel = models.DecimalField(max_digits=10, decimal_places=2)
@@ -165,9 +144,6 @@ class ProduitAssurance(models.Model):
 
 
 class SouscriptionAssurance(models.Model):
-    """
-    Souscription active ou passée d'un client à une assurance du catalogue.
-    """
     STATUS_ASSURANCE_CHOICES = [
         ('ACTIVE', 'Active'),
         ('EXPIREE', 'Expirée'),
@@ -189,9 +165,6 @@ class SouscriptionAssurance(models.Model):
 # ==========================================
 
 class Conversation(models.Model):
-    """
-    Canal de discussion d'assistance entre un client et un agent de support.
-    """
     STATUS_CHAT_CHOICES = [
         ('OUVERTE', 'Ouverte'),
         ('FERMEE', 'Fermée'),
@@ -207,9 +180,6 @@ class Conversation(models.Model):
 
 
 class Message(models.Model):
-    """
-    Message individuel dans une conversation de chat.
-    """
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     expediteur = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     contenu = models.TextField()
@@ -220,9 +190,6 @@ class Message(models.Model):
 
 
 class Notification(models.Model):
-    """
-    Notifications internes (alertes in-app) à destination d'un utilisateur spécifique.
-    """
     NOTIFICATION_TYPES = [
         ('CHANGEMENT_STATUT_CREDIT', 'Changement statut crédit'),
         ('RAPPEL_ECHEANCE_REMBOUSEMENT', 'Rappel échéance remboursement'),
