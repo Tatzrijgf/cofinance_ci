@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="premium-card p-0 mb-4 bg-white border-0 shadow-sm">
+            <!-- Header bar of the conversation -->
+            <div class="card-header bg-primary text-white p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0 fw-bold"><i class="fa-solid fa-headset me-2 text-accent"></i>Support Temps Réel</h5>
+                    <span class="small text-white-50">Sujet : <strong>{{ conversation.sujet }}</strong> | Réf : #{{ conversation.id }}</span>
+                </div>
+                <div>
+                    <span id="connection-badge" class="badge bg-warning rounded-pill">Connexion en cours...</span>
+                </div>
+            </div>
+
+            <!-- Main Chat Messages Display -->
+            <div class="chat-window">
+                <div class="chat-messages" id="chat-messages-container">
+                    {% for msg in historique %}
+                        <div class="message-bubble {% if msg.expediteur.id == user.id %}message-sent{% else %}message-received{% endif %}">
+                            <span class="small d-block fw-bold mb-1" style="font-size: 11px;">
+                                {{ msg.expediteur.get_full_name|default:msg.expediteur.username }}
+                            </span>
+                            {{ msg.contenu }}
+                            <div class="message-meta">
+                                {{ msg.envoye_le|date:"H:i" }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Typing Indicator area -->
+                <div id="typing-indicator" class="px-3 py-1 text-muted small bg-light border-top" style="display: none; font-style: italic;">
+                    <i class="fa-solid fa-pen-nib me-1"></i> <span id="typing-text"></span> est en train d'écrire...
+                </div>
+
+                <!-- Input area -->
+                <div class="chat-input-area">
+                    <form id="chat-form">
+                        <div class="input-group">
+                            <input type="text" id="chat-input" class="form-control border-end-0 bg-light" placeholder="Saisissez votre message..." autocomplete="off" required>
+                            <button type="submit" class="btn btn-premium border-start-0 px-4">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-between">
+            <a href="{% url 'home_web' %}" class="btn btn-light shadow-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i> Retour au tableau de bord
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- WebSocket Logic script -->
+<script>
+    const convId = "{{ conversation.id }}";
+    const userId = "{{ user.id }}";
+    const userRole = "{{ user.role }}";
+    
+    // Auto-scroll messages container to bottom
+    const msgContainer = document.getElementById('chat-messages-container');
+    function scrollToBottom() {
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+    }
+    scrollToBottom();
+
+    // Determine WS protocol
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = wsScheme + "://" + window.location.host + "/ws/chat/" + convId + "/?user_id=" + userId;
+    
+    console.log("Connecting to WebSocket:", wsUrl);
+    const chatSocket = new WebSocket(wsUrl);
+
+    const connectionBadge = document.getElementById('connection-badge');
+
+    chatSocket.onopen = function(e) {
+        console.log("WebSocket connection established!");
+        connectionBadge.className = "badge bg-success rounded-pill";
+        connectionBadge.innerHTML = "<i class='fa-solid fa-circle-dot me-1'></i> En ligne";
+    };
+
+    chatSocket.onclose = function(e) {
+        console.log("WebSocket connection closed!", e);
+        connectionBadge.className = "badge bg-danger rounded-pill";
+        connectionBadge.innerHTML = "<i class='fa-solid fa-circle-xmark me-1'></i> Déconnecté";
+    };
+
+    chatSocket.onerror = function(e) {
+        console.error("WebSocket error:", e);
+    };
+
+    // Receive message
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        console.log("Received data:", data);
+
+        if (data.type === 'message') {
+            // Hide typing indicator when message received
+            document.getElementById('typing-indicator').style.display = 'none';
+
+            // Create message bubble
+            const isMe = String(data.sender_id) === String(userId);
+            const bubble = document.createElement('div');
+            bubble.className = `message-bubble ${isMe ? 'message-sent' : 'message-received'}`;
+            
+            bubble.innerHTML = `
+                <span class="small d-block fw-bold mb-1" style="font-size: 11px;">${data.sender_nom}</span>
+                ${data.content}
+                <div class="message-meta">${data.timestamp}</div>
+            `;
+            
+            msgContainer.appendChild(bubble);
+            scrollToBottom();
+        } 
+        else if (data.type === 'typing') {
+            const typingInd = document.getElementById('typing-indicator');
+            const typingText = document.getElementById('typing-text');
+            const isMe = String(data.sender_id) === String(userId);
+            
+            if (!isMe && data.state === 'on') {
+                typingText.innerText = data.sender_nom;
+                typingInd.style.display = 'block';
+            } else if (!isMe && data.state === 'off') {
+                typingInd.style.display = 'none';
+            }
+        }
+    };
+
+    // Send Message
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+
+    chatForm.onsubmit = function(e) {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (text && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(jsonStr({
+                type: 'message',
+                content: text,
+                sender_id: userId
+            }));
+            chatInput.value = '';
+            sendTypingState('off');
+        }
+    };
+
+    // Typing State triggers
+    let typingTimeout;
+    chatInput.oninput = function() {
+        sendTypingState('on');
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(function() {
+            sendTypingState('off');
+        }, 2000);
+    };
+
+    function sendTypingState(state) {
+        if (chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(jsonStr({
+                type: 'typing',
+                state: state,
+                sender_id: userId
+            }));
+        }
+    }
+
+    function jsonStr(obj) {
+        return JSON.stringify(obj);
+    }
+</script>
+{% endblock %}

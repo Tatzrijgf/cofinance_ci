@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-7">
+        <div class="card auth-card border-0 p-4">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-user-plus text-accent fa-3x mb-3"></i>
+                <h3 class="fw-bold">Créer un Compte Client</h3>
+                <p class="text-muted">Rejoignez COFINANCE CI et accédez à nos offres de crédit et d'assurance</p>
+            </div>
+            
+            <form method="POST" action="{% url 'register_web' %}">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Prénom</label>
+                        <input type="text" class="form-control bg-light" name="first_name" placeholder="Ex: Mory" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Nom</label>
+                        <input type="text" class="form-control bg-light" name="last_name" placeholder="Ex: Diop" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Identifiant unique (username)</label>
+                    <input type="text" class="form-control bg-light" name="username" placeholder="Ex: mory_diop" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Adresse Email</label>
+                    <input type="email" class="form-control bg-light" name="email" placeholder="Ex: mory@example.com" required>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Téléphone (Mobile Money)</label>
+                        <input type="text" class="form-control bg-light" name="telephone" placeholder="Ex: 0506070809" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Région</label>
+                        <select class="form-select bg-light" name="region" required>
+                            <option value="ABIDJAN">Abidjan</option>
+                            <option value="BOUAKE">Bouaké</option>
+                            <option value="KORHOGO">Korhogo</option>
+                            <option value="YAMOUSSOUKRO">Yamoussoukro</option>
+                            <option value="SAN_PEDRO">San Pédro</option>
+                            <option value="DALOA">Daloa</option>
+                            <option value="MAN">Man</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Mot de passe (8 caractères minimum)</label>
+                    <input type="password" class="form-control bg-light" name="password" minlength="8" placeholder="Votre mot de passe sécurisé" required>
+                </div>
+                
+                <button type="submit" class="btn btn-premium w-100 py-2.5">
+                    <i class="fa-solid fa-check me-2"></i> Valider l'inscription
+                </button>
+            </form>
+            
+            <div class="text-center mt-4 border-top pt-3">
+                <p class="mb-0 text-muted">Vous avez déjà un compte ? <a href="{% url 'login_web' %}" class="text-accent fw-semibold">Se connecter</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
