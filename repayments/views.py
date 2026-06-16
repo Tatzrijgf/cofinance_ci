@@ -49,10 +49,31 @@ class PaiementViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        if self.request.user.role == 'CLIENT':
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied("Les paiements sont enregistrés par un agent.")
-        serializer.save(enregistre_par=self.request.user)
+        user = self.request.user
+        if user.role == 'CLIENT':
+            echeancier = serializer.validated_data['echeancier']
+            if echeancier.credit.client != user:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Vous n'êtes pas autorisé à régler cette échéance.")
+            
+            mode = serializer.validated_data.get('mode_paiement')
+            if mode not in ['WAVE', 'ORANGE_MONEY', 'MTN_MOMO']:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError("Les clients ne peuvent régler que par Mobile Money (Wave, Orange Money, MTN MoMo).")
+            
+            ref = serializer.validated_data.get('reference_transaction', '').strip()
+            if not ref:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError("La référence de transaction Mobile Money est obligatoire.")
+            
+            # Forcer le règlement du montant exact dû (reste à payer + pénalités)
+            serializer.save(
+                enregistre_par=user,
+                capital_paye=echeancier.reste_a_payer,
+                penalites_payees=echeancier.penalite_courante
+            )
+        else:
+            serializer.save(enregistre_par=user)
 
     def http_method_not_allowed(self, request, *args, **kwargs):
         return super().http_method_not_allowed(request, *args, **kwargs)
@@ -62,23 +83,39 @@ class PaiementViewSet(viewsets.ModelViewSet):
 
 @login_required(login_url='login_web')
 def rembourser_web(request):
-    """Enregistrer un paiement depuis le portail web."""
+    """Enregistrer un paiement depuis le portail web (client ou agent)."""
     if request.method == 'POST':
         echeancier_id = request.POST.get('echeancier')
-        capital = request.POST.get('capital', '0')
-        penalites = request.POST.get('penalites', '0')
         mode = request.POST.get('mode', 'ESPECES')
         reference = request.POST.get('reference', '')
 
         echeance = get_object_or_404(Echeancier, id=echeancier_id)
 
-        try:
-            from decimal import Decimal
-            capital_dec = Decimal(capital)
-            penalites_dec = Decimal(penalites)
-        except Exception:
-            messages.error(request, "Montant invalide.")
-            return redirect('home_web')
+        if request.user.role == 'CLIENT':
+            # Vérifications client
+            if echeance.credit.client != request.user:
+                messages.error(request, "Vous n'êtes pas autorisé à régler cette échéance.")
+                return redirect('home_web')
+            if mode == 'ESPECES':
+                messages.error(request, "Les paiements en espèces doivent être enregistrés par un agent.")
+                return redirect('home_web')
+            if not reference.strip():
+                messages.error(request, "La référence de transaction Mobile Money est obligatoire.")
+                return redirect('home_web')
+            
+            capital_dec = echeance.reste_a_payer
+            penalites_dec = echeance.penalite_courante
+        else:
+            # Agent/Admin
+            capital = request.POST.get('capital', '0')
+            penalites = request.POST.get('penalites', '0')
+            try:
+                from decimal import Decimal
+                capital_dec = Decimal(capital)
+                penalites_dec = Decimal(penalites)
+            except Exception:
+                messages.error(request, "Montant invalide.")
+                return redirect('home_web')
 
         Paiement.objects.create(
             echeancier=echeance,
@@ -88,5 +125,5 @@ def rembourser_web(request):
             mode_paiement=mode,
             reference_transaction=reference,
         )
-        messages.success(request, f"Remboursement de {capital_dec:,.0f} FCFA enregistré avec succès !")
+        messages.success(request, f"Remboursement de {capital_dec + penalites_dec:,.0f} FCFA enregistré avec succès !")
     return redirect('home_web')

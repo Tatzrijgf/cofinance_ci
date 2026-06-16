@@ -17,6 +17,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'password',
             'first_name', 'last_name', 'telephone', 'region',
+            'date_naissance', 'id_type', 'id_number',
         ]
         read_only_fields = ['id']
 
@@ -41,9 +42,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'telephone', 'region', 'region_display',
             'role', 'role_display',
             'revenu_mensuel',
+            'date_naissance', 'id_type', 'id_number',
+            'photo', 'id_document_recto', 'id_document_verso',
             'date_joined',
         ]
         read_only_fields = ['id', 'username', 'role', 'date_joined']
+
 
 
 class UserListSerializer(serializers.ModelSerializer):

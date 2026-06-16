@@ -1,12 +1,14 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+<div class="auth-wrapper">
     <div class="col-md-5">
-        <div class="card auth-card border-0 p-4">
+        <div class="card auth-card border-0 p-4 shadow-lg">
             <div class="text-center mb-4">
-                <i class="fa-solid fa-lock text-accent fa-3x mb-3"></i>
-                <h3 class="fw-bold">Connexion</h3>
-                <p class="text-muted">Accédez à votre espace sécurisé COFINANCE CI</p>
+                <div class="d-inline-flex justify-content-center align-items-center bg-primary-subtle text-primary rounded-circle p-3 mb-3" style="width: 70px; height: 70px;">
+                    <i class="fa-solid fa-shield-halved text-accent-light fa-2x"></i>
+                </div>
+                <h3 class="fw-bold mb-1">Espace Sécurisé</h3>
+                <p class="text-muted small">Connectez-vous pour gérer votre portefeuille COFINANCE CI</p>
             </div>
             
             <form method="POST" action="{% url 'login_web' %}">
@@ -14,16 +16,16 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Identifiant unique (username)</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-user text-muted"></i></span>
-                        <input type="text" class="form-control border-start-0 bg-light" name="username" placeholder="Ex: mory_diop" required>
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-user"></i></span>
+                        <input type="text" class="form-control border-start-0 bg-white" name="username" placeholder="Ex: mory_diop" required>
                     </div>
                 </div>
                 
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Mot de passe</label>
                     <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-key text-muted"></i></span>
-                        <input type="password" class="form-control border-start-0 bg-light" name="password" placeholder="Votre mot de passe" required>
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-key"></i></span>
+                        <input type="password" class="form-control border-start-0 bg-white" name="password" placeholder="Saisissez votre mot de passe" required>
                     </div>
                 </div>
                 
@@ -33,7 +35,7 @@
             </form>
             
             <div class="text-center mt-4 border-top pt-3">
-                <p class="mb-0 text-muted">Nouveau sur COFINANCE CI ? <a href="{% url 'register_web' %}" class="text-accent fw-semibold">Créer un compte</a></p>
+                <p class="mb-0 text-muted small">Nouveau sur COFINANCE CI ? <a href="{% url 'register_web' %}" class="text-accent-light fw-bold text-decoration-none">Créer un compte client</a></p>
             </div>
         </div>
     </div>

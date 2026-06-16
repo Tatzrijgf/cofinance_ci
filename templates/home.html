@@ -5,17 +5,17 @@
     <!-- HEADER SUMMARY CARD -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="premium-card p-4 bg-white border-0 shadow-sm d-flex justify-content-between align-items-center flex-wrap">
+            <div class="premium-card p-4 bg-white border-0 shadow-sm d-flex justify-content-between align-items-center flex-wrap" style="border-radius: var(--radius-lg);">
                 <div>
-                    <h2 class="fw-bold mb-1">Portail COFINANCE CI</h2>
-                    <p class="text-muted mb-0">
+                    <h2 class="fw-bold mb-1 brand-font text-primary"><i class="fa-solid fa-building-columns me-2 text-accent-light"></i>Portail COFINANCE CI</h2>
+                    <p class="text-muted mb-0 small">
                         <i class="fa-solid fa-calendar me-2"></i>Aujourd'hui : {% now "d F Y" %} | 
-                        <i class="fa-solid fa-earth-africa ms-2 me-2"></i>Région : {{ user.region|default:"Non spécifiée" }}
+                        <i class="fa-solid fa-earth-africa ms-2 me-2 text-accent-light"></i>Région : <strong>{{ user.region|default:"Non spécifiée" }}</strong>
                     </p>
                 </div>
                 <div class="mt-3 mt-md-0">
-                    <span class="badge bg-primary px-3 py-2 text-uppercase fs-6">
-                        <i class="fa-solid fa-shield-halved me-1"></i> Rôle : {{ user.get_role_display }}
+                    <span class="badge bg-primary px-3 py-2 text-uppercase fs-6 shadow-sm d-inline-flex align-items-center" style="border-radius: var(--radius-md) !important; background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;">
+                        <i class="fa-solid fa-shield-halved me-2"></i> Rôle : {{ user.get_role_display }}
                     </span>
                 </div>
             </div>
@@ -26,45 +26,63 @@
     <!-- ESPACE CLIENT -->
     <!-- ========================================================================= -->
     {% if user.role == 'CLIENT' %}
+    
+    <!-- KYC STATUS ALERT -->
+    {% if not user.photo or not user.id_document_recto or not user.id_document_verso or not user.date_naissance or not user.id_number or not user.first_name or not user.last_name %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="kyc-missing-alert shadow-sm d-flex align-items-center">
+                <i class="fa-solid fa-triangle-exclamation fa-2x me-3 text-warning"></i>
+                <div>
+                    <h5 class="fw-bold mb-1 text-warning-emphasis">Profil d'identité (KYC) incomplet</h5>
+                    <p class="mb-0 small opacity-90">Pour pouvoir soumettre une demande de crédit, vous devez obligatoirement renseigner vos informations d'identité (Nom, Prénom, Date de naissance, Numéro de pièce) et téléverser votre photo ainsi que votre pièce d'identité (Recto/Verso) dans le formulaire ci-dessous.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row">
         <!-- Main Form & Actions Column -->
         <div class="col-lg-8">
             <!-- 1. DEMANDE DE CREDIT CARD -->
             <div class="premium-card p-4 mb-4">
                 <div class="d-flex align-items-center mb-4">
-                    <div class="bg-primary-subtle text-primary rounded-circle p-3 me-3">
-                        <i class="fa-solid fa-hand-holding-dollar fa-2x text-primary"></i>
+                    <div class="bg-primary-subtle text-primary rounded-circle p-3 me-3" style="background-color: var(--accent-glow) !important; color: var(--accent) !important;">
+                        <i class="fa-solid fa-hand-holding-dollar fa-2x"></i>
                     </div>
                     <div>
-                        <h4 class="mb-0 fw-bold">Formuler une demande de microcrédit</h4>
-                        <p class="text-muted small mb-0">Votre éligibilité est calculée en temps réel</p>
+                        <h4 class="mb-0 fw-bold brand-font text-primary">Formuler une demande de microcrédit</h4>
+                        <p class="text-muted small mb-0">Remplissez le formulaire de crédit et vos pièces justificatives d'identité.</p>
                     </div>
                 </div>
-                <form method="POST" action="{% url 'credit_creer_web' %}">
+                
+                <form method="POST" action="{% url 'credit_creer_web' %}" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <div class="row">
+                    
+                    <!-- Section A: Paramètres du Crédit -->
+                    <h5 class="fw-bold border-bottom pb-2 mb-3 text-primary"><i class="fa-solid fa-sliders me-2 text-accent-light"></i>1. Paramètres du crédit</h5>
+                    <div class="row mb-4">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Montant souhaité (FCFA)</label>
+                            <label class="form-label fw-semibold">Montant souhaité (FCFA) *</label>
                             <div class="input-group">
                                 <input type="number" class="form-control bg-light" name="montant" placeholder="Ex: 250000" min="5000" required>
                                 <span class="input-group-text bg-light text-muted">FCFA</span>
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Durée de remboursement (Mois)</label>
+                            <label class="form-label fw-semibold">Durée de remboursement (Mois) *</label>
                             <input type="number" class="form-control bg-light" name="duree" placeholder="Ex: 3" min="1" max="24" required>
                         </div>
-                    </div>
-                    <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Fréquence des remboursements</label>
+                            <label class="form-label fw-semibold">Fréquence des remboursements *</label>
                             <select class="form-select bg-light" name="frequence">
                                 <option value="MENSUEL" selected>Mensuelle</option>
                                 <option value="HEBDO">Hebdomadaire</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Objet du financement</label>
+                            <label class="form-label fw-semibold">Objet du financement *</label>
                             <select class="form-select bg-light" name="objet">
                                 <option value="COMMERCE" selected>Commerce / Négoce</option>
                                 <option value="AGRICULTURE">Agriculture</option>
@@ -75,20 +93,87 @@
                             </select>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-premium w-100 py-2.5 mt-2">
-                        <i class="fa-solid fa-paper-plane me-2"></i>Soumettre ma demande
+                    
+                    <!-- Section B: Identité Client (KYC) -->
+                    <h5 class="fw-bold border-bottom pb-2 mb-3 text-primary"><i class="fa-solid fa-id-card me-2 text-accent-light"></i>2. Identité officielle (KYC)</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Prénom *</label>
+                            <input type="text" class="form-control bg-light" name="first_name" value="{{ user.first_name }}" placeholder="Ex: Mory" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Nom *</label>
+                            <input type="text" class="form-control bg-light" name="last_name" value="{{ user.last_name }}" placeholder="Ex: Diop" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Date de naissance *</label>
+                            <input type="date" class="form-control bg-light" name="date_naissance" value="{{ user.date_naissance|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-semibold">Type de pièce d'identité *</label>
+                            <select class="form-select bg-light" name="id_type">
+                                <option value="CNI" {% if user.id_type == 'CNI' %}selected{% endif %}>CNI</option>
+                                <option value="PASSEPORT" {% if user.id_type == 'PASSEPORT' %}selected{% endif %}>Passeport</option>
+                                <option value="ATTESTATION" {% if user.id_type == 'ATTESTATION' %}selected{% endif %}>Attestation d'identité</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label fw-semibold">N° de pièce d'identité *</label>
+                            <input type="text" class="form-control bg-light" name="id_number" value="{{ user.id_number|default:'' }}" placeholder="Ex: CNI012938129" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Section C: Pièces Justificatives (Fichiers) -->
+                    <h5 class="fw-bold border-bottom pb-2 mb-3 text-primary"><i class="fa-solid fa-file-arrow-up me-2 text-accent-light"></i>3. Justificatifs d'identité & Crédit</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">Photo d'identité (Portrait) *</label>
+                            {% if user.photo %}
+                                <div class="mb-2"><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Déjà chargé</span></div>
+                            {% endif %}
+                            <input type="file" class="form-control bg-light" name="photo" accept="image/*" {% if not user.photo %}required{% endif %}>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">Pièce d'identité (Recto) *</label>
+                            {% if user.id_document_recto %}
+                                <div class="mb-2"><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Déjà chargé</span></div>
+                            {% endif %}
+                            <input type="file" class="form-control bg-light" name="id_document_recto" accept="image/*,application/pdf" {% if not user.id_document_recto %}required{% endif %}>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">Pièce d'identité (Verso) *</label>
+                            {% if user.id_document_verso %}
+                                <div class="mb-2"><span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Déjà chargé</span></div>
+                            {% endif %}
+                            <input type="file" class="form-control bg-light" name="id_document_verso" accept="image/*,application/pdf" {% if not user.id_document_verso %}required{% endif %}>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Justificatif de revenus (Facultatif)</label>
+                            <input type="file" class="form-control bg-light" name="justif_revenu" accept="image/*,application/pdf">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Attestation de résidence (Facultatif)</label>
+                            <input type="file" class="form-control bg-light" name="attestation" accept="image/*,application/pdf">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-premium w-100 py-3 mt-2 shadow-sm font-monospace fs-6">
+                        <i class="fa-solid fa-paper-plane me-2 animate-pulse"></i>SOUMETTRE MA DEMANDE DE FINANCEMENT
                     </button>
                 </form>
             </div>
 
             <!-- 2. MES CREDITS EN COURS -->
             <div class="premium-card p-4 mb-4">
-                <h4 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2 text-primary"></i>Mes Dossiers de Crédit</h4>
+                <h4 class="fw-bold mb-3 brand-font text-primary"><i class="fa-solid fa-list-check me-2 text-accent-light"></i>Mes Dossiers de Crédit</h4>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table align-middle">
+                        <thead>
                             <tr>
-                                <th>N°</th>
+                                <th>N° Dossier</th>
                                 <th>Montant</th>
                                 <th>Durée</th>
                                 <th>Score</th>
@@ -100,7 +185,7 @@
                             {% for credit in my_credits %}
                                 <tr>
                                     <td><strong>#{{ credit.id }}</strong></td>
-                                    <td>{{ credit.montant|floatformat:0 }} FCFA</td>
+                                    <td class="fw-bold text-primary">{{ credit.montant|floatformat:0 }} FCFA</td>
                                     <td>{{ credit.duree_mois }} mois</td>
                                     <td>
                                         {% if credit.score_eligibilite %}
@@ -116,7 +201,7 @@
                                             {{ credit.get_statut_display }}
                                         </span>
                                     </td>
-                                    <td class="small text-muted">{{ credit.date_demande|date:"d/m/Y H:i" }}</td>
+                                    <td class="small text-muted">{{ credit.date_demande|date:"d/m/Y" }}</td>
                                 </tr>
                             {% empty %}
                                 <tr>
@@ -130,50 +215,56 @@
 
             <!-- 3. MES ECHEANCES DE REMBOURSEMENT -->
             <div class="premium-card p-4 mb-4">
-                <h4 class="fw-bold mb-3"><i class="fa-solid fa-wallet me-2 text-primary"></i>Mes Prochaines Échéances</h4>
+                <h4 class="fw-bold mb-3 brand-font text-primary"><i class="fa-solid fa-wallet me-2 text-accent-light"></i>Mes Prochaines Échéances</h4>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table align-middle">
+                        <thead>
                             <tr>
                                 <th>Crédit</th>
-                                <th>N° Échéance</th>
-                                <th>Date d'échéance</th>
+                                <th>Échéance N°</th>
+                                <th>Date limite</th>
                                 <th>Montant dû</th>
-                                <th>Pénalités de retard</th>
+                                <th>Pénalités retard</th>
                                 <th>Statut</th>
+                                <th class="text-end">Règlement</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for e in my_echeances %}
                                 <tr>
                                     <td><strong>Crédit #{{ e.credit.id }}</strong></td>
-                                    <td>Échéance #{{ e.numero }}</td>
-                                    <td>{{ e.date_echeance|date:"d/m/Y" }}</td>
-                                    <td><strong>{{ e.montant_du|floatformat:0 }} FCFA</strong></td>
-                                    <td class="text-danger">
+                                    <td>N° {{ e.numero }}</td>
+                                    <td class="font-monospace text-muted">{{ e.date_echeance|date:"d/m/Y" }}</td>
+                                    <td class="fw-bold text-primary">{{ e.montant_du|floatformat:0 }} FCFA</td>
+                                    <td class="text-danger font-monospace">
                                         {% if e.penalite_courante > 0 %}
-                                            <i class="fa-solid fa-triangle-exclamation me-1"></i>+{{ e.penalite_courante|floatformat:0 }} FCFA
+                                            <span class="badge bg-danger-subtle text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i>+{{ e.penalite_courante|floatformat:0 }} FCFA</span>
                                         {% else %}
                                             0 FCFA
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="badge bg-{% if e.statut == 'PAYE' %}success{% elif e.statut == 'EN_RETARD' %}danger{% else %}warning{% endif %} rounded-pill">
+                                        <span class="badge bg-{% if e.statut == 'PAYE' %}success{% elif e.statut == 'EN_RETARD' %}danger{% else %}warning{% endif %}">
                                             {{ e.get_statut_display }}
                                         </span>
+                                    </td>
+                                    <td class="text-end">
+                                        {% if e.statut != 'PAYE' %}
+                                            <button type="button" class="btn btn-sm btn-premium font-monospace py-1" onclick="openPaymentModal('{{ e.id }}', '{{ e.numero }}', '{{ e.credit.id }}', '{{ e.montant_du|floatformat:0 }}', '{{ e.penalite_courante|floatformat:0 }}')">
+                                                <i class="fa-solid fa-mobile-screen-button me-1"></i>Régler
+                                            </button>
+                                        {% else %}
+                                            <span class="text-success small"><i class="fa-solid fa-circle-check"></i> Solde</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-3">Aucune échéance en attente de paiement.</td>
+                                    <td colspan="7" class="text-center text-muted py-3">Aucune échéance en attente de paiement.</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                </div>
-                <div class="alert alert-info border-0 shadow-sm mt-3 mb-0 small">
-                    <i class="fa-solid fa-info-circle me-2"></i>
-                    Pour régler une échéance, présentez l'identifiant (ID Échéance) à un agent agréé avec les fonds sur votre Mobile Money (Orange, Wave, MTN) ou espèces.
                 </div>
             </div>
         </div>
@@ -182,7 +273,7 @@
         <div class="col-lg-4">
             <!-- 4. BOUTIQUE ASSURANCE -->
             <div class="premium-card p-4 mb-4">
-                <h4 class="fw-bold mb-3"><i class="fa-solid fa-shield-heart me-2 text-accent"></i>Boutique Assurances</h4>
+                <h4 class="fw-bold mb-3 brand-font text-primary"><i class="fa-solid fa-shield-heart me-2 text-accent-light"></i>Boutique Assurances</h4>
                 <p class="text-muted small">Souscrivez instantanément à une couverture annuelle de micro-assurance.</p>
                 
                 <form method="POST" action="{% url 'souscrire_web' %}" class="mb-4">
@@ -200,16 +291,16 @@
                     </button>
                 </form>
 
-                <h5 class="fw-bold border-top pt-3 mb-3">Mes Garanties Actives</h5>
+                <h5 class="fw-bold border-top pt-3 mb-3 text-primary"><i class="fa-solid fa-certificate me-2 text-accent-light"></i>Mes Garanties Actives</h5>
                 {% for sub in my_insurances %}
-                    <div class="card bg-light border-0 p-3 mb-2 rounded-3">
+                    <div class="card border-0 p-3 mb-2 rounded-3" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0 !important;">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold small">{{ sub.produit.nom }}</span>
-                            <span class="badge bg-success rounded-pill">Active</span>
+                            <span class="fw-bold text-success-emphasis small">{{ sub.produit.nom }}</span>
+                            <span class="badge bg-success rounded-pill shadow-sm">Active</span>
                         </div>
                         <div class="small text-muted mt-2 d-flex justify-content-between">
-                            <span>Expire le : {{ sub.date_fin|date:"d/m/Y" }}</span>
-                            <span class="text-primary font-monospace">J-{{ sub.jours_avant_expiration }}</span>
+                            <span>Expire le : <strong>{{ sub.date_fin|date:"d/m/Y" }}</strong></span>
+                            <span class="text-primary font-monospace fw-bold">J-{{ sub.jours_avant_expiration }}</span>
                         </div>
                     </div>
                 {% empty %}
@@ -217,19 +308,19 @@
                 {% endfor %}
             </div>
 
-            <!-- 5. SUPPORT CHAT AND SYSTEM NOTIFICATIONS -->
+            <!-- 5. SUPPORT CHAT -->
             <div class="premium-card p-4 mb-4">
-                <h4 class="fw-bold mb-3"><i class="fa-solid fa-comment-dots me-2 text-primary"></i>Support en temps réel</h4>
-                <a href="{% url 'lancer_chat_web' %}" class="btn btn-primary w-100 mb-3">
+                <h4 class="fw-bold mb-3 brand-font text-primary"><i class="fa-solid fa-comment-dots me-2 text-accent-light"></i>Support en temps réel</h4>
+                <a href="{% url 'lancer_chat_web' %}" class="btn btn-premium w-100 mb-3" style="background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;">
                     <i class="fa-solid fa-circle-question me-2"></i>Discuter avec un conseiller
                 </a>
                 
                 {% if my_conversations %}
                     <div class="list-group list-group-flush small">
                         {% for conv in my_conversations %}
-                            <a href="{% url 'chat_detail_web' conv.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                            <a href="{% url 'chat_detail_web' conv.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0 bg-transparent">
                                 <div>
-                                    <i class="fa-regular fa-comment me-2 text-accent"></i>
+                                    <i class="fa-regular fa-comment text-accent-light me-2"></i>
                                     <strong>{{ conv.sujet }}</strong>
                                 </div>
                                 <span class="badge bg-{% if conv.statut == 'OUVERTE' %}success{% else %}secondary{% endif %} rounded-pill">{{ conv.statut }}</span>
@@ -241,18 +332,18 @@
             
             <!-- 6. SYSTEM ALERTS IN-APP -->
             <div class="premium-card p-4 mb-4">
-                <h4 class="fw-bold mb-3"><i class="fa-solid fa-bell me-2 text-warning"></i>Notifications Récentes</h4>
-                <div class="list-group list-group-flush small">
+                <h4 class="fw-bold mb-3 brand-font text-primary"><i class="fa-solid fa-bell me-2 text-warning animate-bounce"></i>Notifications</h4>
+                <div class="list-group list-group-flush small" style="max-height: 250px; overflow-y: auto;">
                     {% for notif in recent_notifs %}
-                        <div class="list-group-item px-0 border-0 mb-2">
+                        <div class="list-group-item px-0 border-0 mb-2 bg-transparent">
                             <div class="d-flex justify-content-between align-items-center">
                                 <strong class="text-primary">{{ notif.titre }}</strong>
                                 {% if not notif.lu %}
-                                    <a href="{% url 'marquer_lu_web' notif.id %}" class="btn btn-sm btn-light py-0 px-2" style="font-size: 10px;">Masquer</a>
+                                    <a href="{% url 'marquer_lu_web' notif.id %}" class="btn btn-sm btn-light py-0 px-2" style="font-size: 10px; border-radius: var(--radius-sm);">Masquer</a>
                                 {% endif %}
                             </div>
-                            <p class="mb-0 text-muted mt-1">{{ notif.message }}</p>
-                            <span class="small text-muted font-monospace" style="font-size: 10px;">{{ notif.cree_le|date:"d/m H:i" }}</span>
+                            <p class="mb-0 text-muted mt-1 small">{{ notif.message }}</p>
+                            <span class="small text-muted font-monospace" style="font-size: 9px;">{{ notif.cree_le|date:"d/m H:i" }}</span>
                         </div>
                     {% empty %}
                         <p class="small text-muted text-center py-2">Aucune notification.</p>
@@ -269,31 +360,31 @@
     <div class="row mb-4">
         <!-- Dashboard Stats Row -->
         <div class="col-md-6 col-lg-3 mb-3">
-            <div class="kpi-card bg-white shadow-sm h-100">
+            <div class="kpi-card h-100 bg-white">
                 <span class="text-muted small text-uppercase fw-semibold">Clients Portefeuille</span>
-                <h2 class="fw-bold mt-2 mb-0">{{ total_clients }}</h2>
-                <i class="fa-solid fa-users position-absolute top-50 end-0 translate-middle-y me-4 fa-2x text-muted opacity-20"></i>
+                <h2 class="fw-bold mt-2 mb-0 brand-font text-primary">{{ total_clients }}</h2>
+                <i class="fa-solid fa-users position-absolute top-50 end-0 translate-middle-y me-4 fa-2x text-accent-light opacity-20"></i>
             </div>
         </div>
         <div class="col-md-6 col-lg-3 mb-3">
-            <div class="kpi-card bg-white shadow-sm h-100" style="border-left-color: var(--color-wave);">
+            <div class="kpi-card h-100 bg-white" style="border-left-color: var(--color-wave);">
                 <span class="text-muted small text-uppercase fw-semibold">Dossiers de Crédit</span>
-                <h2 class="fw-bold mt-2 mb-0">{{ total_credits }}</h2>
-                <i class="fa-solid fa-file-invoice-dollar position-absolute top-50 end-0 translate-middle-y me-4 fa-2x text-muted opacity-20"></i>
+                <h2 class="fw-bold mt-2 mb-0 brand-font text-primary">{{ total_credits }}</h2>
+                <i class="fa-solid fa-file-invoice-dollar position-absolute top-50 end-0 translate-middle-y me-4 fa-2x text-primary opacity-20"></i>
             </div>
         </div>
         <div class="col-md-6 col-lg-3 mb-3">
-            <div class="kpi-card bg-white shadow-sm h-100" style="border-left-color: var(--color-orange);">
+            <div class="kpi-card h-100 bg-white" style="border-left-color: var(--color-orange);">
                 <span class="text-muted small text-uppercase fw-semibold">Crédits Soumis</span>
-                <h2 class="fw-bold mt-2 mb-0">{{ pending_credits|length }}</h2>
-                <i class="fa-solid fa-clock-rotate-left position-absolute top-50 end-0 translate-middle-y me-4 fa-2x text-muted opacity-20"></i>
+                <h2 class="fw-bold mt-2 mb-0 brand-font text-warning-emphasis">{{ pending_credits|length }}</h2>
+                <i class="fa-solid fa-clock-rotate-left position-absolute top-50 end-0 translate-middle-y me-4 fa-2x text-warning opacity-20"></i>
             </div>
         </div>
         <div class="col-md-6 col-lg-3 mb-3">
-            <div class="kpi-card bg-white shadow-sm h-100" style="border-left-color: var(--color-cash);">
+            <div class="kpi-card h-100 bg-white" style="border-left-color: var(--color-cash);">
                 <span class="text-muted small text-uppercase fw-semibold">Conversations Actives</span>
-                <h2 class="fw-bold mt-2 mb-0">{{ open_conversations|length }}</h2>
-                <i class="fa-solid fa-headset position-absolute top-50 end-0 translate-middle-y me-4 fa-2x text-muted opacity-20"></i>
+                <h2 class="fw-bold mt-2 mb-0 brand-font text-success-emphasis">{{ open_conversations|length }}</h2>
+                <i class="fa-solid fa-headset position-absolute top-50 end-0 translate-middle-y me-4 fa-2x text-success opacity-20"></i>
             </div>
         </div>
     </div>
@@ -303,17 +394,17 @@
         <div class="col-lg-8">
             <!-- CREDITS SOUMIS A TRAITER -->
             <div class="premium-card p-4 mb-4">
-                <h4 class="fw-bold mb-3"><i class="fa-solid fa-hourglass-start me-2 text-warning"></i>Demandes de crédit en attente de traitement</h4>
+                <h4 class="fw-bold mb-3 brand-font text-primary"><i class="fa-solid fa-hourglass-start me-2 text-warning"></i>Demandes en attente de traitement</h4>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table align-middle">
+                        <thead>
                             <tr>
                                 <th>Client</th>
                                 <th>Montant</th>
                                 <th>Durée</th>
                                 <th>Score</th>
                                 <th>Statut</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -321,9 +412,9 @@
                                 <tr>
                                     <td>
                                         <strong>{{ credit.client.get_full_name|default:credit.client.username }}</strong><br>
-                                        <span class="small text-muted">{{ credit.client.telephone }} | {{ credit.client.region }}</span>
+                                        <span class="small text-muted font-monospace">{{ credit.client.telephone }} | {{ credit.client.region }}</span>
                                     </td>
-                                    <td>{{ credit.montant|floatformat:0 }} FCFA</td>
+                                    <td class="fw-bold text-primary">{{ credit.montant|floatformat:0 }} FCFA</td>
                                     <td>{{ credit.duree_mois }} mois</td>
                                     <td>
                                         <span class="fw-bold {% if credit.score_eligibilite >= 70 %}text-success{% else %}text-warning{% endif %}">
@@ -336,9 +427,14 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="{% url 'credit_action_web' credit.id 'analyser' %}" class="btn btn-sm btn-primary">
-                                            <i class="fa-solid fa-magnifying-glass me-1"></i>Analyser
-                                        </a>
+                                        <div class="d-inline-flex gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary py-1" data-bs-toggle="modal" data-bs-target="#reviewModal{{ credit.id }}">
+                                                <i class="fa-solid fa-folder-open"></i> Dossier
+                                            </button>
+                                            <a href="{% url 'credit_action_web' credit.id 'analyser' %}" class="btn btn-sm btn-primary py-1">
+                                                Analyser
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             {% empty %}
@@ -353,19 +449,19 @@
 
             <!-- CREDITS EN ANALYSE ET APPROUVES -->
             <div class="premium-card p-4 mb-4">
-                <h4 class="fw-bold mb-3"><i class="fa-solid fa-gears me-2 text-primary"></i>Suivi du Workflow Crédit</h4>
+                <h4 class="fw-bold mb-3 brand-font text-primary"><i class="fa-solid fa-gears me-2 text-accent-light"></i>Suivi du Workflow Crédit</h4>
                 
-                <h5 class="fw-bold mt-3 text-primary"><i class="fa-solid fa-magnifying-glass-chart me-2"></i>Dossiers en cours d'analyse</h5>
+                <h5 class="fw-bold mt-3 text-primary"><i class="fa-solid fa-magnifying-glass-chart me-2 text-accent-light"></i>Dossiers en cours d'analyse</h5>
                 <div class="table-responsive mb-4">
-                    <table class="table table-sm table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table align-middle">
+                        <thead>
                             <tr>
                                 <th>N°</th>
                                 <th>Client</th>
                                 <th>Montant</th>
                                 <th>Score</th>
                                 <th>Agent</th>
-                                <th>Décider</th>
+                                <th class="text-end">Décider</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -373,23 +469,26 @@
                                 <tr>
                                     <td><strong>#{{ credit.id }}</strong></td>
                                     <td>{{ credit.client.get_full_name|default:credit.client.username }}</td>
-                                    <td>{{ credit.montant|floatformat:0 }} FCFA</td>
+                                    <td class="fw-bold text-primary">{{ credit.montant|floatformat:0 }} FCFA</td>
                                     <td><span class="fw-bold text-primary">{{ credit.score_eligibilite }}/100</span></td>
-                                    <td><span class="text-muted">{{ credit.agent.username|default:"Non assigné" }}</span></td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <a href="{% url 'credit_action_web' credit.id 'approuver' %}" class="btn btn-xs btn-success py-1 px-2" style="font-size:11px;">
+                                    <td><span class="text-muted small">{{ credit.agent.username|default:"Non assigné" }}</span></td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary py-1" data-bs-toggle="modal" data-bs-target="#reviewModal{{ credit.id }}">
+                                                Dossier
+                                            </button>
+                                            <a href="{% url 'credit_action_web' credit.id 'approuver' %}" class="btn btn-sm btn-success py-1">
                                                 Approuver
                                             </a>
-                                            <button type="button" class="btn btn-xs btn-danger py-1 px-2" style="font-size:11px;" data-bs-toggle="collapse" data-bs-target="#rejectForm{{ credit.id }}">
+                                            <button type="button" class="btn btn-sm btn-danger py-1" data-bs-toggle="collapse" data-bs-target="#rejectForm{{ credit.id }}">
                                                 Rejeter
                                             </button>
                                         </div>
-                                        <div class="collapse mt-2" id="rejectForm{{ credit.id }}">
+                                        <div class="collapse mt-2 text-start" id="rejectForm{{ credit.id }}" style="max-width: 250px; margin-left: auto;">
                                             <form method="POST" action="{% url 'credit_action_web' credit.id 'rejeter' %}">
                                                 {% csrf_token %}
                                                 <input type="text" name="motif" class="form-control form-control-sm mb-1" placeholder="Motif du rejet..." required>
-                                                <button type="submit" class="btn btn-sm btn-danger w-100 py-0" style="font-size:10px;">Valider rejet</button>
+                                                <button type="submit" class="btn btn-sm btn-danger w-100 py-1" style="font-size:11px;">Valider rejet</button>
                                             </form>
                                         </div>
                                     </td>
@@ -403,17 +502,17 @@
                     </table>
                 </div>
 
-                <h5 class="fw-bold text-success"><i class="fa-solid fa-circle-check me-2"></i>Dossiers Approuvés (à décaisser)</h5>
+                <h5 class="fw-bold text-success"><i class="fa-solid fa-circle-check me-2 text-success"></i>Dossiers Approuvés (à décaisser)</h5>
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table align-middle">
+                        <thead>
                             <tr>
                                 <th>N°</th>
                                 <th>Client</th>
                                 <th>Montant</th>
                                 <th>Échéancier</th>
                                 <th>Décision</th>
-                                <th>Action</th>
+                                <th class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -421,13 +520,18 @@
                                 <tr>
                                     <td><strong>#{{ credit.id }}</strong></td>
                                     <td>{{ credit.client.get_full_name|default:credit.client.username }}</td>
-                                    <td>{{ credit.montant|floatformat:0 }} FCFA</td>
-                                    <td><span class="text-muted">{{ credit.duree_mois }} mensualités</span></td>
+                                    <td class="fw-bold text-primary">{{ credit.montant|floatformat:0 }} FCFA</td>
+                                    <td><span class="text-muted small">{{ credit.duree_mois }} mensualités</span></td>
                                     <td>{{ credit.date_decision|date:"d/m/Y" }}</td>
-                                    <td>
-                                        <a href="{% url 'credit_action_web' credit.id 'decaisser' %}" class="btn btn-sm btn-purple text-white bg-purple" style="background-color: #854d0e; color: white;">
-                                            <i class="fa-solid fa-coins me-1"></i>Décaisser fonds
-                                        </a>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary py-1" data-bs-toggle="modal" data-bs-target="#reviewModal{{ credit.id }}">
+                                                Dossier
+                                            </button>
+                                            <a href="{% url 'credit_action_web' credit.id 'decaisser' %}" class="btn btn-sm btn-premium py-1" style="background: linear-gradient(135deg, #d97706, #f59e0b) !important; box-shadow: 0 4px 10px rgba(217,119,6,0.2) !important;">
+                                                <i class="fa-solid fa-coins me-1"></i>Décaisser
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             {% empty %}
@@ -442,17 +546,17 @@
 
             <!-- CHAT SALONS OUVERTS -->
             <div class="premium-card p-4 mb-4">
-                <h4 class="fw-bold mb-3"><i class="fa-solid fa-headset me-2 text-accent"></i>Salons de Support Clients Ouverts</h4>
+                <h4 class="fw-bold mb-3 brand-font text-primary"><i class="fa-solid fa-headset me-2 text-accent-light"></i>Salons de Support Clients Ouverts</h4>
                 <div class="list-group list-group-flush">
                     {% for conv in open_conversations %}
-                        <a href="{% url 'chat_detail_web' conv.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                        <a href="{% url 'chat_detail_web' conv.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 bg-transparent px-0">
                             <div>
                                 <i class="fa-regular fa-comment-dots text-primary me-2"></i>
                                 <strong>{{ conv.sujet }}</strong> | Client : {{ conv.client.username }}
                                 <br><span class="small text-muted">Créé le : {{ conv.cree_le|date:"d/m/Y H:i" }} | Agent : {{ conv.agent.username|default:"Aucun" }}</span>
                             </div>
-                            <span class="btn btn-sm btn-outline-primary">
-                                <i class="fa-solid fa-right-to-bracket me-1"></i>Rejoindre
+                            <span class="btn btn-sm btn-outline-primary font-monospace py-1">
+                                Rejoindre
                             </span>
                         </a>
                     {% empty %}
@@ -467,21 +571,21 @@
             <!-- CAISSE MOBILE : ENREGISTRER UN PAIEMENT -->
             <div class="premium-card p-4 mb-4">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="bg-success-subtle text-success rounded-circle p-2.5 me-2">
-                        <i class="fa-solid fa-cash-register text-success"></i>
+                    <div class="bg-success-subtle text-success rounded-circle p-2.5 me-2" style="background-color: rgba(16, 185, 129, 0.1) !important; color: var(--accent) !important;">
+                        <i class="fa-solid fa-cash-register fa-lg"></i>
                     </div>
-                    <h4 class="mb-0 fw-bold">Caisse Mobile</h4>
+                    <h4 class="mb-0 fw-bold brand-font text-primary">Caisse Mobile</h4>
                 </div>
                 <p class="text-muted small">Enregistrer un versement client sur une échéance spécifique.</p>
                 
                 <form method="POST" action="{% url 'rembourser_web' %}">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">ID Échéance cible (Échéancier)</label>
+                        <label class="form-label fw-semibold">ID Échéance cible (Échéancier) *</label>
                         <input type="number" class="form-control bg-light" name="echeancier" placeholder="Entrez le numéro ID" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Mode de paiement</label>
+                        <label class="form-label fw-semibold">Mode de paiement *</label>
                         <select class="form-select bg-light" name="mode">
                             <option value="WAVE">Wave (Côte d'Ivoire)</option>
                             <option value="ORANGE_MONEY">Orange Money</option>
@@ -491,11 +595,11 @@
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label class="form-label fw-semibold">Capital payé</label>
+                            <label class="form-label fw-semibold">Capital payé (FCFA) *</label>
                             <input type="number" class="form-control bg-light" name="capital" placeholder="FCFA" min="0" required>
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label fw-semibold">Pénalités payées</label>
+                            <label class="form-label fw-semibold">Pénalités payées (FCFA) *</label>
                             <input type="number" class="form-control bg-light" name="penalites" value="0" min="0" required>
                         </div>
                     </div>
@@ -503,7 +607,7 @@
                         <label class="form-label fw-semibold">Référence Transaction Mobile</label>
                         <input type="text" class="form-control bg-light" name="reference" placeholder="Ex: TXN872938127">
                     </div>
-                    <button type="submit" class="btn btn-success w-100">
+                    <button type="submit" class="btn btn-premium w-100 font-monospace" style="background: linear-gradient(135deg, var(--accent), var(--accent-light)) !important;">
                         <i class="fa-solid fa-floppy-disk me-2"></i>Valider l'encaissement
                     </button>
                 </form>
@@ -511,22 +615,22 @@
 
             <!-- ECHEANCES DU PORTFOLIO EN RETARD OU A PAYER -->
             <div class="premium-card p-4 mb-4">
-                <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-circle-exclamation me-2"></i>Suivi des recouvrements</h5>
-                <p class="text-muted small">Échéances urgentes de votre agence.</p>
+                <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-circle-exclamation me-2 text-danger"></i>Recouvrements Requis</h5>
+                <p class="text-muted small">Échéances urgentes de votre portefeuille.</p>
                 <div class="list-group list-group-flush small" style="max-height: 300px; overflow-y: auto;">
                     {% for ech in echeances_dues %}
-                        <div class="list-group-item px-0 border-0 mb-2">
+                        <div class="list-group-item px-0 border-0 mb-2 bg-transparent">
                             <div class="d-flex justify-content-between align-items-center">
-                                <span><strong>ID Échéance : {{ ech.id }}</strong> (N°{{ ech.numero }})</span>
-                                <span class="badge bg-{% if ech.statut == 'EN_RETARD' %}danger{% else %}warning{% endif %} rounded-pill">
+                                <span><strong>ID : {{ ech.id }}</strong> (N°{{ ech.numero }})</span>
+                                <span class="badge bg-{% if ech.statut == 'EN_RETARD' %}danger{% else %}warning{% endif %} rounded-pill shadow-sm">
                                     {{ ech.get_statut_display }}
                                 </span>
                             </div>
                             <div class="mt-1 d-flex justify-content-between text-muted">
-                                <span>Client : {{ ech.credit.client.username }}</span>
-                                <strong>{{ ech.montant_du|floatformat:0 }} FCFA</strong>
+                                <span>Client : <strong>{{ ech.credit.client.username }}</strong></span>
+                                <strong class="text-primary">{{ ech.montant_du|floatformat:0 }} FCFA</strong>
                             </div>
-                            <div class="small text-muted font-monospace mt-1">Échéance : {{ ech.date_echeance|date:"d/m/Y" }}</div>
+                            <div class="small text-muted font-monospace mt-1">Limite : {{ ech.date_echeance|date:"d/m/Y" }}</div>
                         </div>
                     {% empty %}
                         <p class="small text-muted text-center py-2">Aucune échéance en souffrance.</p>
@@ -538,4 +642,268 @@
     {% endif %}
 
 </div>
+
+<!-- ========================================================================= -->
+<!-- MODALS CLIENT & AGENT -->
+<!-- ========================================================================= -->
+
+<!-- Client Payment Modal -->
+{% if user.role == 'CLIENT' %}
+<div class="modal fade" id="clientPaymentModal" tabindex="-1" aria-labelledby="clientPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0" style="border-radius: var(--radius-lg); overflow: hidden;">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-bold font-monospace" id="clientPaymentModalLabel"><i class="fa-solid fa-mobile-screen-button me-2 text-accent-light"></i>Régler mon échéance</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'rembourser_web' %}">
+                {% csrf_token %}
+                <div class="modal-body p-4 bg-light">
+                    <input type="hidden" name="echeancier" id="modal_echeancier_id">
+                    
+                    <div class="premium-card p-3 bg-white mb-3 shadow-none border" style="border-radius: var(--radius-md);">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Échéance N°</span>
+                            <span class="fw-bold" id="modal_echeance_num">1</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Dossier de Crédit</span>
+                            <span class="fw-bold">#<span id="modal_credit_id">X</span></span>
+                        </div>
+                        <hr class="my-2 border-dashed">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted small">Capital Échéance</span>
+                            <span class="fw-semibold"><span id="modal_capital_due">0</span> FCFA</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-danger small">Pénalités Retard</span>
+                            <span class="text-danger fw-semibold">+<span id="modal_penalties_due">0</span> FCFA</span>
+                        </div>
+                        <div class="d-flex justify-content-between border-top pt-2">
+                            <strong class="text-primary">Total à payer</strong>
+                            <strong class="text-primary fs-5"><span id="modal_total_due">0</span> FCFA</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Opérateur Mobile Money *</label>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="mode" id="pay_wave" value="WAVE" checked>
+                                <label class="btn btn-outline-primary w-100 py-2 d-flex flex-column align-items-center" for="pay_wave" style="border-radius: var(--radius-md);">
+                                    <i class="fa-solid fa-wifi mb-1"></i>Wave
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="mode" id="pay_orange" value="ORANGE_MONEY">
+                                <label class="btn btn-outline-warning w-100 py-2 d-flex flex-column align-items-center" for="pay_orange" style="border-radius: var(--radius-md);">
+                                    <i class="fa-solid fa-mobile mb-1"></i>Orange
+                                </label>
+                            </div>
+                            <div class="col-4">
+                                <input type="radio" class="btn-check" name="mode" id="pay_mtn" value="MTN_MOMO">
+                                <label class="btn btn-outline-danger w-100 py-2 d-flex flex-column align-items-center" for="pay_mtn" style="border-radius: var(--radius-md);">
+                                    <i class="fa-solid fa-sim-card mb-1"></i>MTN
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Référence de transaction reçue par SMS *</label>
+                        <input type="text" class="form-control" name="reference" placeholder="Ex: WM102930492 ou OM_982183" required autocomplete="off">
+                        <div class="form-text small text-muted">Veuillez saisir le code de transaction reçu après validation sur votre mobile.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 bg-white">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-premium px-4 font-monospace">VALIDER MON REGLEMENT</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openPaymentModal(echeanceId, number, creditId, capital, penalties) {
+        document.getElementById('modal_echeancier_id').value = echeanceId;
+        document.getElementById('modal_echeance_num').innerText = number;
+        document.getElementById('modal_credit_id').innerText = creditId;
+        
+        let cap = parseFloat(capital.replace(/\s/g, ''));
+        let pen = parseFloat(penalties.replace(/\s/g, ''));
+        let total = cap + pen;
+        
+        document.getElementById('modal_capital_due').innerText = cap.toLocaleString('fr-FR');
+        document.getElementById('modal_penalties_due').innerText = pen.toLocaleString('fr-FR');
+        document.getElementById('modal_total_due').innerText = total.toLocaleString('fr-FR');
+        
+        var myModal = new bootstrap.Modal(document.getElementById('clientPaymentModal'));
+        myModal.show();
+    }
+</script>
+{% endif %}
+
+<!-- Agent Review Modals (One modal generated per credit to avoid AJAX complexity) -->
+{% if user.role != 'CLIENT' %}
+    {% for credit in all_agent_credits %}
+    <div class="modal fade" id="reviewModal{{ credit.id }}" tabindex="-1" aria-labelledby="reviewModalLabel{{ credit.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0" style="border-radius: var(--radius-lg); overflow: hidden;">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold" id="reviewModalLabel{{ credit.id }}"><i class="fa-solid fa-folder-open me-2 text-accent-light"></i>Dossier de Crédit #{{ credit.id }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    
+                    <!-- Grid System for Details -->
+                    <div class="row">
+                        <!-- Left Panel: Client Profile & Images -->
+                        <div class="col-md-5 mb-4 mb-md-0 border-end border-2">
+                            <div class="text-center mb-3">
+                                {% if credit.client.photo %}
+                                    <img src="{{ credit.client.photo.url }}" class="kyc-preview-img mb-2" style="width: 100px; height: 100px;">
+                                {% else %}
+                                    <i class="fa-solid fa-circle-user fa-4x text-muted mb-2"></i>
+                                {% endif %}
+                                <h5 class="fw-bold mb-1 text-primary">{{ credit.client.get_full_name }}</h5>
+                                <span class="badge bg-secondary rounded-pill font-monospace small">ID : {{ credit.client.username }}</span>
+                            </div>
+                            
+                            <div class="card bg-white p-3 border-0 shadow-none mb-3" style="border-radius: var(--radius-md);">
+                                <h6 class="fw-bold border-bottom pb-1 text-muted small uppercase">Coordonnées KYC</h6>
+                                <p class="mb-1 small">Date de naissance : <strong>{{ credit.client.date_naissance|date:"d/m/Y"|default:"Non spécifiée" }}</strong></p>
+                                <p class="mb-1 small">Type pièce : <strong>{{ credit.client.get_id_type_display|default:"Non spécifié" }}</strong></p>
+                                <p class="mb-1 small">N° pièce : <strong class="font-monospace text-primary">{{ credit.client.id_number|default:"Non spécifié" }}</strong></p>
+                                <p class="mb-1 small">Téléphone : <strong>{{ credit.client.telephone }}</strong></p>
+                                <p class="mb-1 small">Région : <strong>{{ credit.client.region }}</strong></p>
+                                <p class="mb-0 small">Revenu mensuel : <strong>{{ credit.client.revenu_mensuel|floatformat:0 }} FCFA</strong></p>
+                            </div>
+                            
+                            <!-- CNI Images Recto/Verso -->
+                            <h6 class="fw-bold text-muted small mb-2 text-uppercase">Documents CNI du client</h6>
+                            <div class="row g-2">
+                                <div class="col-6 text-center">
+                                    <span class="small text-muted d-block mb-1">Recto</span>
+                                    {% if credit.client.id_document_recto %}
+                                        <a href="{{ credit.client.id_document_recto.url }}" target="_blank">
+                                            <img src="{{ credit.client.id_document_recto.url }}" class="kyc-doc-thumb img-fluid hover-lift">
+                                        </a>
+                                    {% else %}
+                                        <div class="p-3 bg-white border text-muted small rounded-3" style="min-height: 100px;">Non disponible</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6 text-center">
+                                    <span class="small text-muted d-block mb-1">Verso</span>
+                                    {% if credit.client.id_document_verso %}
+                                        <a href="{{ credit.client.id_document_verso.url }}" target="_blank">
+                                            <img src="{{ credit.client.id_document_verso.url }}" class="kyc-doc-thumb img-fluid hover-lift">
+                                        </a>
+                                    {% else %}
+                                        <div class="p-3 bg-white border text-muted small rounded-3" style="min-height: 100px;">Non disponible</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Panel: Credit Details & Score & Supporting files -->
+                        <div class="col-md-7 ps-md-4">
+                            <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-calculator me-2 text-accent-light"></i>Détails du Crédit</h5>
+                            
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <span class="small text-muted">Montant demandé</span>
+                                    <h4 class="fw-bold text-primary mb-0 font-monospace">{{ credit.montant|floatformat:0 }} FCFA</h4>
+                                </div>
+                                <div class="col-6">
+                                    <span class="small text-muted">Durée & Fréquence</span>
+                                    <h5 class="fw-bold mb-0 text-primary-light">{{ credit.duree_mois }} Mois ({{ credit.get_frequence_display }})</h5>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <span class="small text-muted">Taux d'intérêt</span>
+                                    <h6 class="fw-bold mb-0 text-primary-light">{{ credit.taux_interet }}%</h6>
+                                </div>
+                                <div class="col-6">
+                                    <span class="small text-muted">Objet du financement</span>
+                                    <h6 class="fw-bold mb-0 text-primary-light">{{ credit.get_objet_display }}</h6>
+                                </div>
+                            </div>
+
+                            <!-- Scoring Progress visual -->
+                            <div class="p-3 bg-white border-0 shadow-none mb-3" style="border-radius: var(--radius-md);">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold text-primary"><i class="fa-solid fa-chart-line me-2 text-accent-light"></i>Score d'éligibilité automatique</span>
+                                    <strong class="fs-5 {% if credit.score_eligibilite >= 70 %}text-success{% else %}text-warning{% endif %}">{{ credit.score_eligibilite }}/100</strong>
+                                </div>
+                                <div class="progress" style="height: 10px; border-radius: var(--radius-sm);">
+                                    <div class="progress-bar {% if credit.score_eligibilite >= 70 %}bg-success{% else %}bg-warning{% endif %}" role="progressbar" style="width: {{ credit.score_eligibilite }}%;" aria-valuenow="{{ credit.score_eligibilite }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <span class="small text-muted mt-2 d-block" style="font-size: 11px;">Formule : Historique de paiement + Ratio d'endettement + Capacité mensuelle + Ancienneté.</span>
+                            </div>
+                            
+                            <!-- Credit specific documents -->
+                            <h6 class="fw-bold text-primary mb-2"><i class="fa-solid fa-paperclip me-2 text-accent-light"></i>Pièces complémentaires du dossier</h6>
+                            <div class="list-group mb-3">
+                                {% for doc in credit.documents.all %}
+                                    <a href="{{ doc.fichier.url }}" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 bg-white border" style="border-radius: var(--radius-sm);">
+                                        <div class="small">
+                                            <i class="fa-solid fa-file-pdf text-danger me-2"></i><strong>{{ doc.get_type_doc_display }}</strong>
+                                        </div>
+                                        <span class="badge bg-light text-dark border small">Télécharger</span>
+                                    </a>
+                                {% empty %}
+                                    <p class="small text-muted py-1">Aucune pièce jointe complémentaire chargée.</p>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Transition Workflow actions from within Modal -->
+                            <div class="border-top pt-3 mt-3">
+                                <h6 class="fw-bold text-primary mb-2">Actions de transition</h6>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% if credit.statut == 'SOUMISE' %}
+                                        <a href="{% url 'credit_action_web' credit.id 'analyser' %}" class="btn btn-primary px-3">
+                                            Prendre en charge (Analyser)
+                                        </a>
+                                    {% elif credit.statut == 'EN_ANALYSE' %}
+                                        <a href="{% url 'credit_action_web' credit.id 'approuver' %}" class="btn btn-success px-3">
+                                            Approuver le crédit
+                                        </a>
+                                        <button class="btn btn-danger px-3" type="button" data-bs-toggle="collapse" data-bs-target="#modalRejectCollapse{{ credit.id }}">
+                                            Rejeter
+                                        </button>
+                                    {% elif credit.statut == 'APPROUVEE' %}
+                                        <a href="{% url 'credit_action_web' credit.id 'decaisser' %}" class="btn btn-warning text-dark px-3 fw-semibold">
+                                            Décaisser les fonds
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">Aucune action disponible pour le statut actuel ({{ credit.get_statut_display }}).</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="collapse mt-3" id="modalRejectCollapse{{ credit.id }}">
+                                    <form method="POST" action="{% url 'credit_action_web' credit.id 'rejeter' %}">
+                                        {% csrf_token %}
+                                        <div class="input-group">
+                                            <input type="text" name="motif" class="form-control" placeholder="Indiquer le motif obligatoire du rejet..." required>
+                                            <button type="submit" class="btn btn-danger">Valider rejet</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                <div class="modal-footer border-0 p-3 bg-white">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
+
 {% endblock %}

@@ -43,6 +43,22 @@ class CustomUser(AbstractUser):
         default=0,
         verbose_name='Revenu mensuel (FCFA)',
     )
+    photo = models.ImageField(upload_to='photos/', blank=True, null=True, verbose_name="Photo d'identité")
+    id_number = models.CharField(max_length=50, blank=True, null=True, unique=True, verbose_name="Numéro de pièce d'identité")
+    id_type = models.CharField(
+        max_length=30,
+        choices=[
+            ('CNI', "Carte Nationale d'Identité"),
+            ('PASSEPORT', 'Passeport'),
+            ('ATTESTATION', "Attestation d'identité"),
+        ],
+        default='CNI',
+        verbose_name="Type de pièce d'identité"
+    )
+    id_document_recto = models.FileField(upload_to='ids/', blank=True, null=True, verbose_name="Pièce d'identité (Recto)")
+    id_document_verso = models.FileField(upload_to='ids/', blank=True, null=True, verbose_name="Pièce d'identité (Verso)")
+    date_naissance = models.DateField(null=True, blank=True, verbose_name="Date de naissance")
+
 
     class Meta:
         verbose_name = 'Utilisateur'

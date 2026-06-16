@@ -1,12 +1,14 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+<div class="auth-wrapper">
     <div class="col-md-7">
-        <div class="card auth-card border-0 p-4">
+        <div class="card auth-card border-0 p-4 shadow-lg">
             <div class="text-center mb-4">
-                <i class="fa-solid fa-user-plus text-accent fa-3x mb-3"></i>
-                <h3 class="fw-bold">Créer un Compte Client</h3>
-                <p class="text-muted">Rejoignez COFINANCE CI et accédez à nos offres de crédit et d'assurance</p>
+                <div class="d-inline-flex justify-content-center align-items-center bg-primary-subtle text-primary rounded-circle p-3 mb-3" style="width: 70px; height: 70px;">
+                    <i class="fa-solid fa-user-plus text-accent-light fa-2x"></i>
+                </div>
+                <h3 class="fw-bold mb-1">Créer un Compte Client</h3>
+                <p class="text-muted small">Rejoignez COFINANCE CI et profitez de financements et couvertures rapides</p>
             </div>
             
             <form method="POST" action="{% url 'register_web' %}">
@@ -14,55 +16,76 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Prénom</label>
-                        <input type="text" class="form-control bg-light" name="first_name" placeholder="Ex: Mory" required>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-font"></i></span>
+                            <input type="text" class="form-control border-start-0 bg-white" name="first_name" placeholder="Ex: Mory" required>
+                        </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Nom</label>
-                        <input type="text" class="form-control bg-light" name="last_name" placeholder="Ex: Diop" required>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-font"></i></span>
+                            <input type="text" class="form-control border-start-0 bg-white" name="last_name" placeholder="Ex: Diop" required>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Identifiant unique (username)</label>
-                    <input type="text" class="form-control bg-light" name="username" placeholder="Ex: mory_diop" required>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-circle-user"></i></span>
+                        <input type="text" class="form-control border-start-0 bg-white" name="username" placeholder="Ex: mory_diop" required>
+                    </div>
                 </div>
                 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Adresse Email</label>
-                    <input type="email" class="form-control bg-light" name="email" placeholder="Ex: mory@example.com" required>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-envelope"></i></span>
+                        <input type="email" class="form-control border-start-0 bg-white" name="email" placeholder="Ex: mory@example.com" required>
+                    </div>
                 </div>
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Téléphone (Mobile Money)</label>
-                        <input type="text" class="form-control bg-light" name="telephone" placeholder="Ex: 0506070809" required>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-phone"></i></span>
+                            <input type="text" class="form-control border-start-0 bg-white" name="telephone" placeholder="Ex: 0506070809" required>
+                        </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-semibold">Région</label>
-                        <select class="form-select bg-light" name="region" required>
-                            <option value="ABIDJAN">Abidjan</option>
-                            <option value="BOUAKE">Bouaké</option>
-                            <option value="KORHOGO">Korhogo</option>
-                            <option value="YAMOUSSOUKRO">Yamoussoukro</option>
-                            <option value="SAN_PEDRO">San Pédro</option>
-                            <option value="DALOA">Daloa</option>
-                            <option value="MAN">Man</option>
-                        </select>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-map-location-dot"></i></span>
+                            <select class="form-select border-start-0 bg-white" name="region" required>
+                                <option value="ABIDJAN">Abidjan</option>
+                                <option value="BOUAKE">Bouaké</option>
+                                <option value="KORHOGO">Korhogo</option>
+                                <option value="YAMOUSSOUKRO">Yamoussoukro</option>
+                                <option value="SAN_PEDRO">San Pédro</option>
+                                <option value="DALOA">Daloa</option>
+                                <option value="MAN">Man</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Mot de passe (8 caractères minimum)</label>
-                    <input type="password" class="form-control bg-light" name="password" minlength="8" placeholder="Votre mot de passe sécurisé" required>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-key"></i></span>
+                        <input type="password" class="form-control border-start-0 bg-white" name="password" minlength="8" placeholder="Votre mot de passe sécurisé" required>
+                    </div>
                 </div>
                 
                 <button type="submit" class="btn btn-premium w-100 py-2.5">
-                    <i class="fa-solid fa-check me-2"></i> Valider l'inscription
+                    <i class="fa-solid fa-user-plus me-2"></i> Valider l'inscription
                 </button>
             </form>
             
             <div class="text-center mt-4 border-top pt-3">
-                <p class="mb-0 text-muted">Vous avez déjà un compte ? <a href="{% url 'login_web' %}" class="text-accent fw-semibold">Se connecter</a></p>
+                <p class="mb-0 text-muted small">Vous avez déjà un compte ? <a href="{% url 'login_web' %}" class="text-accent-light fw-bold text-decoration-none">Se connecter</a></p>
             </div>
         </div>
     </div>

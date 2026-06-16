@@ -45,6 +45,11 @@ class CreditViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Seuls les clients peuvent soumettre une demande de crédit.")
 
+        # Vérifier que le KYC est complet
+        if not (user.first_name and user.last_name and user.date_naissance and user.id_number and user.photo and user.id_document_recto and user.id_document_verso):
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Votre profil KYC est incomplet. Veuillez renseigner votre prénom, nom, date de naissance, numéro de pièce d'identité, photo d'identité et les scans de votre pièce d'identité (Recto/Verso) avant de demander un crédit.")
+
         montant = serializer.validated_data['montant']
         duree = serializer.validated_data['duree_mois']
         score = CreditScoringService.calculate(user, montant, duree)
@@ -149,19 +154,90 @@ def credit_creer_web(request):
             messages.error(request, "Montant et durée invalides.")
             return redirect('home_web')
 
-        score = CreditScoringService.calculate(request.user, montant_dec, duree_int)
+        # Récupération et validation KYC
+        user = request.user
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        date_naissance_str = request.POST.get('date_naissance', '').strip()
+        id_type = request.POST.get('id_type', '').strip()
+        id_number = request.POST.get('id_number', '').strip()
+
+        photo_file = request.FILES.get('photo')
+        recto_file = request.FILES.get('id_document_recto')
+        verso_file = request.FILES.get('id_document_verso')
+
+        from datetime import datetime
+        date_naissance = None
+        if date_naissance_str:
+            try:
+                date_naissance = datetime.strptime(date_naissance_str, '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, "Format de date de naissance invalide (attendu: AAAA-MM-JJ).")
+                return redirect('home_web')
+
+        effective_first_name = first_name or user.first_name
+        effective_last_name = last_name or user.last_name
+        effective_date_naissance = date_naissance or user.date_naissance
+        effective_id_number = id_number or user.id_number
+        effective_id_type = id_type or user.id_type
+
+        has_photo = photo_file or user.photo
+        has_recto = recto_file or user.id_document_recto
+        has_verso = verso_file or user.id_document_verso
+
+        if not (effective_first_name and effective_last_name and effective_date_naissance and effective_id_number and effective_id_type and has_photo and has_recto and has_verso):
+            messages.error(request, "Toutes les pièces justificatives d'identité (Photo, CNI Recto/Verso, date de naissance, etc.) sont obligatoires pour soumettre une demande de crédit.")
+            return redirect('home_web')
+
+        # Mise à jour du profil utilisateur avec les informations KYC
+        from users.models import CustomUser
+        if first_name: user.first_name = first_name
+        if last_name: user.last_name = last_name
+        if date_naissance: user.date_naissance = date_naissance
+        if id_type: user.id_type = id_type
+        if id_number:
+            if id_number != user.id_number and CustomUser.objects.filter(id_number=id_number).exists():
+                messages.error(request, "Ce numéro de pièce d'identité est déjà utilisé par un autre compte.")
+                return redirect('home_web')
+            user.id_number = id_number
+
+        if photo_file: user.photo = photo_file
+        if recto_file: user.id_document_recto = recto_file
+        if verso_file: user.id_document_verso = verso_file
+        user.save()
+
+        # Création du crédit
+        score = CreditScoringService.calculate(user, montant_dec, duree_int)
         credit = Credit.objects.create(
-            client=request.user,
+            client=user,
             montant=montant_dec,
             duree_mois=duree_int,
             frequence=frequence,
             objet=objet,
             score_eligibilite=score,
         )
+
+        # Upload des pièces complémentaires liées au crédit
+        justif_revenu_file = request.FILES.get('justif_revenu')
+        attestation_file = request.FILES.get('attestation')
+
+        if justif_revenu_file:
+            DocumentCredit.objects.create(
+                credit=credit,
+                type_doc=DocumentCredit.TypeDoc.JUSTIF_REVENU,
+                fichier=justif_revenu_file
+            )
+        if attestation_file:
+            DocumentCredit.objects.create(
+                credit=credit,
+                type_doc=DocumentCredit.TypeDoc.ATTESTATION,
+                fichier=attestation_file
+            )
+
         try:
             from notifications.models import Notification
             Notification.objects.create(
-                destinataire=request.user,
+                destinataire=user,
                 titre="Demande de crédit soumise",
                 message=f"Votre demande de {montant_dec:,.0f} FCFA a été enregistrée (score : {score}/100).",
             )

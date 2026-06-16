@@ -129,6 +129,7 @@ def home_web(request):
         context['pending_credits'] = Credit.objects.filter(statut='SOUMISE').order_by('-date_demande')[:10]
         context['analysis_credits'] = Credit.objects.filter(statut='EN_ANALYSE').order_by('-date_demande')[:5]
         context['approved_credits'] = Credit.objects.filter(statut='APPROUVEE').order_by('-date_demande')[:5]
+        context['all_agent_credits'] = list(context['pending_credits']) + list(context['analysis_credits']) + list(context['approved_credits'])
         context['echeances_dues'] = Echeancier.objects.filter(
             statut='A_PAYER'
         ).order_by('date_echeance')[:10]
